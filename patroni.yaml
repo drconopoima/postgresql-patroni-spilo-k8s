@@ -1,0 +1,48 @@
+scope: postgresql-cluster
+namespace: /service/
+name: ${PATRONI_NAME}
+
+restapi:
+  listen: 0.0.0.0:8008
+  connect_address: ${PATRONI_NAME}:8008
+
+etcd:
+  host: ${ETCD_HOST}:${ETCD_PORT}
+  # Optional: authentication
+  # user: etcd-user
+  # password: etcd-password
+
+postgresql:
+  listen: 0.0.0.0:5432
+  connect_address: ${PATRONI_NAME}:5432
+  data_dir: /var/lib/postgresql/data
+  config_file: /etc/postgresql/postgresql.conf
+  hba_file: /etc/postgresql/pg_hba.conf
+
+  authentication:
+    superuser:
+      username: postgres
+      password: ${POSTGRES_PASSWORD}
+    replication:
+      username: replicator
+      password: ${REPLICATION_PASSWORD}
+
+  parameters:
+    wal_level: replica
+    max_wal_senders: 5
+    max_replication_slots: 5
+    hot_standby: on
+    archive_mode: on
+    archive_command: 'cp %p /var/lib/postgresql/archive/%f'
+    archive_timeout: 60
+
+  # Optional: backup configuration
+  backup:
+    command: '/usr/bin/pg_basebackup -D /tmp/backup -R -X stream -P'
+    retention: 7
+
+tags:
+  nofailover: false
+  noloadbalance: false
+  clonefrom: false
+  nosync: false
